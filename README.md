@@ -1,5 +1,4 @@
 # LiquidXFrontendV2
-LiquidX Protocol frontend
 
 LiquidX Protocol frontend is developed based on Vite and React.
 
