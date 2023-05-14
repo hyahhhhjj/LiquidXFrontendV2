@@ -11,3 +11,5 @@ To run the app, you need to make sure you have installed Node.js.
 3. Type the command `npm run dev` to start the app.
 
 That's it! The app should now be running and you can access it in your browser by visiting `http://localhost:3000`.
+
+For more information, you can go to [FrontEnd User Documentation]()
