@@ -12,4 +12,4 @@ To run the app, you need to make sure you have installed Node.js.
 
 That's it! The app should now be running and you can access it in your browser by visiting `http://localhost:3000`.
 
-For more information, you can go to [FrontEnd User Documentation]()
+For more information, you can go to [FrontEnd User Documentation](https://github.com/hyahhhhjj/LiquidXFrontendV2/blob/master/documentation/FrontEnd%20User%20Documentation.pdf)
