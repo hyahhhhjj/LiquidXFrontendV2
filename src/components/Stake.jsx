@@ -7,6 +7,11 @@ import { toEtherFixedFloat, toEtherFixedString, divFixedFloat, getPlaceHolder, f
 export default function Stake(props) {
     console.log("Stake initialized")
 
+    const TUSDTL = '0xA9afe1B2c52b63975aD1F39a9b490bb457BA15c7'
+    const TBUSD = '0x6a0Df378CbD9cfdb27448ba9Da327cb6EE681Cc1'
+    const WBNBL = '0xE50520BA255648Ec28E73979D185FA23ffc03Da7'
+    const WBNB = '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd'
+
     const [state, setState] = React.useState({
         tr_usdt: 0, tr_bnb: 0, sp_usdt: 0, sp_bnb: 0,
         input_usdt: "", input_wbnb: "",
@@ -16,10 +21,10 @@ export default function Stake(props) {
     async function syncStakeInfo() {
         if (props.wallet.component === 1) {
             const web3 = new Web3(window.ethereum)
-            const tbusd_l = new web3.eth.Contract(LiquidXStakePool["abi"], '0x6d36a16987c043f4062FB6fE46076B4E358D7B81')
-            const tbusd = new web3.eth.Contract(ERC20["abi"], "0x6658081AbdAA15336b54763662B46966008E8953")
-            const wbnb_l = new web3.eth.Contract(LiquidXStakePool["abi"], '0xEA159998EA0615904FA6af263c6b52231336BE06')
-            const wbnb = new web3.eth.Contract(ERC20["abi"], "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd")
+            const tbusd_l = new web3.eth.Contract(LiquidXStakePool["abi"], TUSDTL)
+            const tbusd = new web3.eth.Contract(ERC20["abi"], TBUSD)
+            const wbnb_l = new web3.eth.Contract(LiquidXStakePool["abi"], WBNBL)
+            const wbnb = new web3.eth.Contract(ERC20["abi"], WBNB)
             const totalReserve_tbusd = await tbusd_l.methods.getTotalReserve().call()
             const totalSupply_tbusdl = await tbusd_l.methods.totalSupply().call()
             const totalReserve_wbnb = await wbnb_l.methods.getTotalReserve().call()
@@ -78,18 +83,18 @@ export default function Stake(props) {
 
     async function handleClick(event) {
         if (props.wallet.component === 1) {
-            const tbusd = new web3.eth.Contract(ERC20["abi"], "0x6658081AbdAA15336b54763662B46966008E8953")
-            const wbnb = new web3.eth.Contract(ERC20["abi"], "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd")
-            const tbusd_l = new web3.eth.Contract(LiquidXStakePool["abi"], '0x6d36a16987c043f4062FB6fE46076B4E358D7B81')
-            const wbnb_l = new web3.eth.Contract(LiquidXStakePool["abi"], '0xEA159998EA0615904FA6af263c6b52231336BE06')
+            const tbusd = new web3.eth.Contract(ERC20["abi"], TBUSD)
+            const wbnb = new web3.eth.Contract(ERC20["abi"], WBNB)
+            const tbusd_l = new web3.eth.Contract(LiquidXStakePool["abi"], TUSDTL)
+            const wbnb_l = new web3.eth.Contract(LiquidXStakePool["abi"], WBNBL)
             let amount
             let allowance
             if (event.target.id === "usdt_mint_1") {
                 amount = fromEtherToWei(state.input_usdt)
-                allowance = await tbusd.methods.allowance(props.wallet.fullAddress, '0x6d36a16987c043f4062FB6fE46076B4E358D7B81').call()
+                allowance = await tbusd.methods.allowance(props.wallet.fullAddress, TUSDTL).call()
                 if (parseInt(amount) > parseInt(allowance)) {
                     try {
-                        await tbusd.methods.approve('0x6d36a16987c043f4062FB6fE46076B4E358D7B81', amount).send({ from: props.wallet.fullAddress})
+                        await tbusd.methods.approve(TUSDTL, amount).send({ from: props.wallet.fullAddress})
                     } catch (error) {
                         return
                     }
@@ -110,10 +115,10 @@ export default function Stake(props) {
                 }
             } else if (event.target.id === "wbnb_mint_1") {
                 amount = fromEtherToWei(state.input_wbnb)
-                allowance = await wbnb.methods.allowance(props.wallet.fullAddress, '0xEA159998EA0615904FA6af263c6b52231336BE06').call()
+                allowance = await wbnb.methods.allowance(props.wallet.fullAddress, WBNBL).call()
                 if (parseInt(amount) > parseInt(allowance)) {
                     try {
-                        await wbnb.methods.approve('0xEA159998EA0615904FA6af263c6b52231336BE06', amount).send({ from: props.wallet.fullAddress })
+                        await wbnb.methods.approve(WBNBL, amount).send({ from: props.wallet.fullAddress })
                     } catch (error) {
                         return
                     }

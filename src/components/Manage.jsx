@@ -1,5 +1,4 @@
 ﻿import React from 'react'
-import Web3 from 'web3'
 import LiquidXAggregator from '../contract_abi/LiquidXAggregator.json'
 import ManagerAccount from '../contract_abi/ManagerAccount.json'
 import ILBLegacyPair from '../contract_abi/ILBLegacyPair.json'
@@ -10,16 +9,24 @@ import { calBorrowable, toEtherFixedFloat, getPlaceHolder, toEtherFixedString, f
 export default function Manage(props) {
     console.log("Manage initialized")
 
-    const USDTADDRESS = "0x6658081AbdAA15336b54763662B46966008E8953"
+    const AGGREGATOR = '0x42Af710DDFbb7646475a3F2643Aa7f9331a3695e'
+    const USDTADDRESS = "0x6a0Df378CbD9cfdb27448ba9Da327cb6EE681Cc1"
     const WBNBADDRESS = "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd"
     const ZEROADDRESS = '0x0000000000000000000000000000000000000000'
-    const PAIRADDRESS = '0x5f79ABacC763A61AD7ffEaa01a8b6Fd9F1856C2e'
+    const PAIRADDRESS = '0xf2c32a1ac4c19d23920cfb68a9b8e46aba7cd5ce'
+
+    const TOKENX = "0x6a0Df378CbD9cfdb27448ba9Da327cb6EE681Cc1"
+    const TOKENY = "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd"
+    const BINSTEP = 20
+
+    const LBROUTER = "0x394F548A0AeB144355713733Eeef6ea023913c37"
+
     
     const [data, setData] = React.useState({
         params: {
-            tokenX: '0x6658081AbdAA15336b54763662B46966008E8953',
-            tokenY: '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd',
-            binStep: 15,
+            tokenX: TOKENX,
+            tokenY: TOKENY,
+            binStep: BINSTEP,
             amountX: 2000,
             amountY: 3000,
             amountXMin: 0,
@@ -47,11 +54,13 @@ export default function Manage(props) {
 
     console.log(data)
 
-    const [accountState, setAccountState] = React.useState({ accountIf: false, accountAddress: ZEROADDRESS})
+    const [accountState, setAccountState] = React.useState({ accountIf: false, accountAddress: ZEROADDRESS })
+
+    console.log(accountState)
 
     function getAccounState() {
         if (props.wallet.component === 1) {
-            const aggregator = new web3.eth.Contract(LiquidXAggregator["abi"], '0x917E3bcb5665bcd46D7a758b4F37C84D87790921')
+            const aggregator = new web3.eth.Contract(LiquidXAggregator["abi"], AGGREGATOR)
             aggregator.methods.getAccount(props.wallet.fullAddress).call(function (error, result) {
                 if (result != ZEROADDRESS) {
                     setAccountState({ accountIf: true, accountAddress: result })
@@ -74,11 +83,11 @@ export default function Manage(props) {
     async function syncLiquidityShape() {
         let amountTBUSDEther = accountInfo.usdtInputAddLiquiidty
         let amountWBNBEther = accountInfo.wbnbInputAddLiquidity
-        const binStep = 0.0015
-        const bpValue = 1.0015
+        const binStep = BINSTEP
+        const bpValue = 1 + 0.0001 * BINSTEP
         const amountTBUSDWei = fromEtherToWei(amountTBUSDEther)
         const amountWBNBWei = fromEtherToWei(amountWBNBEther)
-        const pairV2 = new web3.eth.Contract(ILBLegacyPair["abi"], '0x5f79ABacC763A61AD7ffEaa01a8b6Fd9F1856C2e')
+        const pairV2 = new web3.eth.Contract(ILBLegacyPair["abi"], PAIRADDRESS)
         pairV2.methods.getReservesAndId().call(function (error, result) {
             const activeId = result.activeId
             pairV2.methods.getBin(activeId).call(function (error, result) {
@@ -153,8 +162,8 @@ export default function Manage(props) {
                             break
                         }
                     }
-                    console.log(yAmountShape)
-                    console.log(yAccumulateWei)
+                    /*console.log(yAmountShape)*/
+                    /*console.log(yAccumulateWei)*/
                     index += 1
                 }
                 for (let i = 0; i < xAmountShape.length; i++) {
@@ -168,11 +177,11 @@ export default function Manage(props) {
                         ...prevData,
                         data: lShape,
                         params: {
-                            tokenX: '0x6658081AbdAA15336b54763662B46966008E8953',
-                            tokenY: '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd',
-                            binStep: 15,
-                            amountX: xAccumulateWei,
-                            amountY: yAccumulateWei,
+                            tokenX: TOKENX,
+                            tokenY: TOKENY,
+                            binStep: BINSTEP,
+                            amountX: String(xAccumulateWei),
+                            amountY: String(yAccumulateWei),
                             amountXMin: 0,
                             amountYMin: 0,
                             activeIdDesired: activeId,
@@ -191,15 +200,15 @@ export default function Manage(props) {
 
     async function syncManageInfo() {
         if (accountState.accountIf === true) {
-            const aggregator = new web3.eth.Contract(LiquidXAggregator["abi"], '0x917E3bcb5665bcd46D7a758b4F37C84D87790921')
+            const aggregator = new web3.eth.Contract(LiquidXAggregator["abi"], AGGREGATOR)
             const account = new web3.eth.Contract(ManagerAccount["abi"], accountState.accountAddress)
-            const tbusd = new web3.eth.Contract(ERC20["abi"], "0x6658081AbdAA15336b54763662B46966008E8953")
-            const wbnb = new web3.eth.Contract(ERC20["abi"], "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd")
-            const usdt_borrowed = await aggregator.methods.getManagerBorrowedAmount(accountState.accountAddress, '0x6658081AbdAA15336b54763662B46966008E8953').call()
-            const wbnb_borrowed = await aggregator.methods.getManagerBorrowedAmount(accountState.accountAddress, '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd').call()
-            const usdt_available = await account.methods.getAccountBalanceAvailable('0x6658081AbdAA15336b54763662B46966008E8953').call()
-            const wbnb_available = await account.methods.getAccountBalanceAvailable('0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd').call()
-            aggregator.methods.getMarginAvailableByAsset(accountState.accountAddress, '0x6658081AbdAA15336b54763662B46966008E8953').call(function (error, result) {
+            const tbusd = new web3.eth.Contract(ERC20["abi"], USDTADDRESS)
+            const wbnb = new web3.eth.Contract(ERC20["abi"], WBNBADDRESS)
+            const usdt_borrowed = await aggregator.methods.getManagerBorrowedAmount(accountState.accountAddress, USDTADDRESS).call()
+            const wbnb_borrowed = await aggregator.methods.getManagerBorrowedAmount(accountState.accountAddress, WBNBADDRESS).call()
+            const usdt_available = await account.methods.getAccountBalanceAvailable(USDTADDRESS).call()
+            const wbnb_available = await account.methods.getAccountBalanceAvailable(WBNBADDRESS).call()
+            aggregator.methods.getMarginAvailableByAsset(accountState.accountAddress, USDTADDRESS).call(function (error, result) {
                 let available = result
                 account.methods.getCredit().call(function (error, result) {
                     let credit = result
@@ -212,7 +221,7 @@ export default function Manage(props) {
                     })
                 })
             })
-            aggregator.methods.getMarginAvailableByAsset(accountState.accountAddress, '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd').call(function (error, result) {
+            aggregator.methods.getMarginAvailableByAsset(accountState.accountAddress, WBNBADDRESS).call(function (error, result) {
                 let available = result
                 account.methods.getCredit().call(function (error, result) {
                     let credit = result
@@ -305,8 +314,8 @@ export default function Manage(props) {
 
     async function handleClickAccount() {
         if (props.wallet.component === 1) {
-            const aggregator = new web3.eth.Contract(LiquidXAggregator["abi"], '0x917E3bcb5665bcd46D7a758b4F37C84D87790921')
-            await aggregator.methods.createManagerAccount(props.wallet.fullAddress, "0xf7C6d73336f333b63144644944176072D94128F5").send({ from: props.wallet.fullAddress })
+            const aggregator = new web3.eth.Contract(LiquidXAggregator["abi"], AGGREGATOR)
+            await aggregator.methods.createManagerAccount(props.wallet.fullAddress, LBROUTER).send({ from: props.wallet.fullAddress })
             getAccounState()
         }
     }
@@ -359,8 +368,8 @@ export default function Manage(props) {
 
     async function handleClickAmount(event) {
         if (accountState.accountIf === true) {
-            const tbusd = new web3.eth.Contract(ERC20["abi"], "0x6658081AbdAA15336b54763662B46966008E8953")
-            const wbnb = new web3.eth.Contract(ERC20["abi"], "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd")
+            const tbusd = new web3.eth.Contract(ERC20["abi"], USDTADDRESS)
+            const wbnb = new web3.eth.Contract(ERC20["abi"], WBNBADDRESS)
             const account = new web3.eth.Contract(ManagerAccount["abi"], accountState.accountAddress)
             let amount
             let allowance
@@ -454,7 +463,7 @@ export default function Manage(props) {
                     return
                 }
             } else if (event.target.id === "btn_add_liquidity") {
-                await account.methods.addLiquidity("0x5f79ABacC763A61AD7ffEaa01a8b6Fd9F1856C2e", data.params).send({ from: props.wallet.fullAddress })
+                await account.methods.addLiquidity(PAIRADDRESS, data.params).send({ from: props.wallet.fullAddress })
                 syncManageInfo()
             } else if (event.target.id === "btn_remove_liquidity") {
                 let ids_ = []
@@ -463,7 +472,7 @@ export default function Manage(props) {
                     ids_.push(String(data.data[i].x))
                     amounts_.push(String(Math.floor(data.data[i].y)))
                 }
-                await account.methods.removeLiquidity("0x5f79ABacC763A61AD7ffEaa01a8b6Fd9F1856C2e", ids_, amounts_, 1693399470).send({ from: props.wallet.fullAddress })
+                await account.methods.removeLiquidity(PAIRADDRESS, ids_, amounts_, 1693399470).send({ from: props.wallet.fullAddress })
                 syncManageInfo()
             }
         } else {
