@@ -21,6 +21,8 @@ export default function Manage(props) {
 
     const LBROUTER = "0x394F548A0AeB144355713733Eeef6ea023913c37"
 
+    const CORRELATION = 0.999
+
     
     const [data, setData] = React.useState({
         params: {
@@ -167,8 +169,8 @@ export default function Manage(props) {
                     index += 1
                 }
                 for (let i = 0; i < xAmountShape.length; i++) {
-                    const xi = String(Math.floor(xAmountShape[i] * (1e18 * 0.999) / xAccumulateWei))
-                    const yi = String(Math.floor(yAmountShape[i] * (1e18 * 0.999) / yAccumulateWei))
+                    const xi = String(Math.floor(xAmountShape[i] * (1e18 * CORRELATION) / xAccumulateWei))
+                    const yi = String(Math.floor(yAmountShape[i] * (1e18 * CORRELATION) / yAccumulateWei))
                     xDistribution.push(xi)
                     yDistribution.push(yi)
                 }
@@ -470,7 +472,7 @@ export default function Manage(props) {
                 let amounts_ = []
                 for (let i = 0; i < data.data.length; i++) {
                     ids_.push(String(data.data[i].x))
-                    amounts_.push(String(Math.floor(data.data[i].y)))
+                    amounts_.push(String(Math.floor(data.data[i].y * CORRELATION)))
                 }
                 await account.methods.removeLiquidity(PAIRADDRESS, ids_, amounts_, 1693399470).send({ from: props.wallet.fullAddress })
                 syncManageInfo()
