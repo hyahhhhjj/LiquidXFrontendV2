@@ -3,7 +3,7 @@ import LiquidXAggregator from '../contract_abi/LiquidXAggregator.json'
 import ManagerAccount from '../contract_abi/ManagerAccount.json'
 import ILBLegacyPair from '../contract_abi/ILBLegacyPair.json'
 import ERC20 from '../contract_abi/ERC20.json'
-import { VictoryBar, VictoryChart, VictoryAxis, VictoryTheme, VictoryStack, VictoryVoronoiContainer, VictoryTooltip } from 'victory';
+import { VictoryLegend, createContainer, VictoryZoomContainer, VictoryBar, VictoryChart, VictoryAxis, VictoryTheme, VictoryStack, VictoryVoronoiContainer, VictoryTooltip } from 'victory';
 import { calBorrowable, toEtherFixedFloat, getPlaceHolder, toEtherFixedString, fromEtherToWei } from '../utils/utils'
 
 export default function Manage(props) {
@@ -22,6 +22,8 @@ export default function Manage(props) {
     const LBROUTER = "0x394F548A0AeB144355713733Eeef6ea023913c37"
 
     const CORRELATION = 0.999
+
+    const VictoryZoomVoronoiContainer = createContainer("zoom", "voronoi")
 
     
     const [data, setData] = React.useState({
@@ -42,12 +44,13 @@ export default function Manage(props) {
             deadline: 1693399470
         },
         data: [
-            { x: 1, y: 10 },
-            { x: 2, y: 20 },
-            { x: 3, y: 30 },
-            { x: 4, y: 40 },
-            { x: 5, y: 50 },
+            { x: 1, y: 0 }
         ],
+        xAmountDistribution: [],
+        yAmountDistribution: [],
+        xAmountEstimated: 0,
+        yAmountEstimated: 0,
+        graphStatus: false,
         isDragging: false,
         startY: null,
         barIndex: null,
@@ -124,6 +127,10 @@ export default function Manage(props) {
                 let yDistribution = []
                 let deltaIds = []
 
+                // state variable
+                let xAmountDistribution = []
+                let yAmountDistribution = []
+
                 let index = 0
                 while (true) {
                     console.log("loop")
@@ -139,6 +146,10 @@ export default function Manage(props) {
                         xAmountShape.push(x0In)
                         yAmountShape.push(y0In)
                         deltaIds.push(index)
+                        //state variable
+                        const fixedPointReverse = parseFloat((1 / binPrice1).toFixed(2))
+                        xAmountDistribution.push({ x: fixedPointReverse, y: parseFloat((x0In / 1e18).toFixed(6)) })
+                        yAmountDistribution.push({ x: fixedPointReverse, y: parseFloat((y0In / 1e18).toFixed(6)) })
                     }
                     else {
                         let binPricePlus = binPrice1 * (bpValue) ** (index)
@@ -160,6 +171,14 @@ export default function Manage(props) {
                             yAmountShape.unshift(yIn)
                             deltaIds.push(index)
                             deltaIds.unshift(0 - index)
+
+                            //state variable
+                            const fixedPointSmall = parseFloat((1 / binPricePlus).toFixed(2))
+                            const fixedPointBig = parseFloat((1 / binPriceMinus).toFixed(2))
+                            xAmountDistribution.unshift({ x: fixedPointSmall, y: parseFloat((xIn / 1e18).toFixed(6)) })
+                            xAmountDistribution.push({ x: fixedPointBig, y: 0 })
+                            yAmountDistribution.unshift({ x: fixedPointSmall, y: 0 })
+                            yAmountDistribution.push({ x: fixedPointBig, y: parseFloat((yIn / 1e18).toFixed(6)) })
                         } else {
                             break
                         }
@@ -178,6 +197,11 @@ export default function Manage(props) {
                     return ({
                         ...prevData,
                         data: lShape,
+                        xAmountDistribution: xAmountDistribution,
+                        yAmountDistribution: yAmountDistribution,
+                        xAmountEstimated: (xAccumulateWei / 1e18).toFixed(4),
+                        yAmountEstimated: (yAccumulateWei / 1e18).toFixed(4),
+                        graphStatus: false,
                         params: {
                             tokenX: TOKENX,
                             tokenY: TOKENY,
@@ -269,8 +293,89 @@ export default function Manage(props) {
     }
 
     function handleData(value, index) {
+        console.log(value)
         console.log(index)
-        setData(prevData => {
+        if (data.xAmountDistribution[index] != 0 && data.yAmountDistribution[index] != 0) {
+            var newGraphX = data.xAmountDistribution[index] * value
+            var newGraphY = data.yAmountDistribution[index] * value
+
+            /*var newEstimatedX = parseFloat(data.xAmountEstimated) + newGraphX - data.xAmountDistribution[index]
+            var newEstimatedY = parseFloat(data.yAmountEstimated) + newGraphY - data.yAmountDistribution[index]
+
+            var newDistributionX = []
+            var newDistributionY = []*/
+            /*
+
+            var newXTotal = 0
+            var newYTotal = 0
+
+            for (var i = 0; i < data.xAmountDistribution[index].length; i++) {
+                if (i != index) {
+                    newXTotal += data.xAmountDistribution[index]
+                    newYTotal += data.yAmountDistribution[index]
+                }
+                else {
+                    newXTotal += newGraphX
+                    newYTotal += newGraphY
+                }
+            }
+
+            var newDistributionX = []
+            var newDistributionY = []
+
+            for (var i = 0; i < data.xAmountDistribution[index].length; i++) {
+                if (i != index) {
+                    newDistributionX.push(String(Math.floor(data.xAmountDistribution[index] * 1e18 / newXTotal * CORRELATION)))
+                    newDistributionY.push(String(Math.floor(data.yAmountDistribution[index] * 1e18 / newYTotal * CORRELATION)))
+                } else {
+                    newDistributionX.push(String(Math.floor(newGraphX * 1e18 / newXTotal * CORRELATION)))
+                    newDistributionY.push(String(Math.floor(newGraphY * 1e18 / newYTotal * CORRELATION)))
+                }
+            }
+
+            const xTotalWeiStr = String(Math.floor(newXTotal * 1e18))
+            const yTotalWeiStr = String(Math.floor(newYTotal * 1e18))
+
+            setData(prevData => {
+                const newXAmountDistribution = prevData.xAmountDistribution.map((d, i) => {
+                    if (i == index) {
+                        return { ...d, y: newGraphX }
+                    }
+                    
+                })
+                const newYAmountDistribution = prevData.yAmountDistribution.map((d, i) => {
+                    if (i == index) {
+                        return { ...d, y: newGraphY }
+                    }
+                })
+
+                return {
+                    ...prevData,
+                    xAmountDistribution: newXAmountDistribution,
+                    yAmountDistribution: newYAmountDistribution,
+                    xAmountEstimated: newXTotal.toFixed(4),
+                    yAmountEstimated: newYTotal.toFixed(4),
+                    params: { ...prevData.params, amountX: xTotalWeiStr, amountY: yTotalWeiStr, distributionX: newDistributionX, distributionY: newDistributionY }
+                }
+            })*/
+
+        } else if (data.xAmountDistribution[index] != 0 && data.yAmountDistribution[index] == 0) {
+
+            var newGraphX = data.xAmountDistribution[index] * value
+
+            var newXTotal = 0
+
+            for (var i = 0; i < data.xAmountDistribution[index].length; i++) {
+                if (i != index) {
+
+                } else {
+
+                }
+            }
+        } else if (data.xAmountDistribution[index] == 0 && data.yAmountDistribution[index] != 0) {
+
+        }
+        /*setData(prevData => {
             const newData = prevData.data.map((d, i) => {
                 if (i == index) {
                     return { ...d, y: value}
@@ -279,12 +384,12 @@ export default function Manage(props) {
             });
             console.log(newData)
             return { ...prevData, data: newData }
-        })
+        })*/
     }
 
-    function handleMouseDown(event, clickedDatum, clickedIndex) {
+    function handleMouseDown(event, clickedIndex) {
         setData(prevData => {
-            return { ...prevData, startY: event.clientY, isDragging: true, barIndex: clickedIndex, barValue: data.data[clickedIndex].y }
+            return { ...prevData, startY: event.clientY, isDragging: true, barIndex: clickedIndex}
         })
     }
 
@@ -293,11 +398,11 @@ export default function Manage(props) {
             let distY
             if (event.clientY < data.startY) {
                 distY = data.startY - event.clientY
-                handleData((distY / 256 + 1) * data.barValue, data.barIndex)
+                handleData((distY / 256 + 1), data.barIndex)
             }
-            else if (data.barValue > 0){
+            else {
                 distY = event.clientY - data.startY
-                handleData((1 - distY / 256) * data.barValue, data.barIndex)
+                handleData((1 - distY / 256), data.barIndex)
             }
         }
     }
@@ -507,10 +612,57 @@ export default function Manage(props) {
                 }
                 const sortedNewData = newData.sort((a, b) => a.x - b.x)
                 console.log(sortedNewData)
-                setData((prevData) => {
-                    return ({
-                        ...prevData,
-                        data: sortedNewData
+                /* graph sync*/
+                const pairV2 = new web3.eth.Contract(ILBLegacyPair["abi"], PAIRADDRESS)
+                const bpValue = 1 + 0.0001 * BINSTEP
+                pairV2.methods.getReservesAndId().call(function (error, result) {
+                    const activeId = result.activeId
+                    pairV2.methods.getBin(activeId).call(function (error, result) {
+                        const binReserveX = parseInt(result.reserveX)
+                        const binReserveY = parseInt(result.reserveY)
+                        pairV2.methods.totalSupply(activeId).call(function (error, result) {
+                            const lbtSupply = parseInt(result)
+                            const realIDInt = parseInt(activeId) - 2 ** 23
+                            const binPrice1 = bpValue ** realIDInt
+
+                            var newXAmountDistribution = []
+                            var newYAmountDistribution = []
+
+                            var newEstimatedX = 0
+                            var newEstimatedY = 0
+
+                            for (var i = 0; i < sortedNewData.length; i++) {
+                                const idDistance = sortedNewData[i].x - parseInt(activeId)
+                                const idBinPrice = binPrice1 * bpValue ** idDistance
+                                const idBinPriceReverse = 1 / idBinPrice
+                                if (idDistance < 0) {
+                                    newXAmountDistribution.unshift({ x: parseFloat(idBinPriceReverse.toFixed(2)), y: 0 })
+                                    newYAmountDistribution.unshift({ x: parseFloat(idBinPriceReverse.toFixed(2)), y: parseFloat((sortedNewData[i].y / 1e18).toFixed(6)) })
+                                    newEstimatedY += parseFloat((sortedNewData[i].y / 1e18).toFixed(6))
+                                } else if (idDistance > 0) {
+                                    newXAmountDistribution.unshift({ x: parseFloat(idBinPriceReverse.toFixed(2)), y: parseFloat((sortedNewData[i].y / (idBinPrice * 1e18)).toFixed(6)) })
+                                    newYAmountDistribution.unshift({ x: parseFloat(idBinPriceReverse.toFixed(2)), y: 0 })
+                                    newEstimatedX += parseFloat((sortedNewData[i].y / (idBinPrice * 1e18)).toFixed(6))
+                                } else {
+                                    newXAmountDistribution.unshift({ x: parseFloat(idBinPriceReverse.toFixed(2)), y: parseFloat((binReserveX * sortedNewData[i].y / (lbtSupply * 1e18)).toFixed(6)) })
+                                    newYAmountDistribution.unshift({ x: parseFloat(idBinPriceReverse.toFixed(2)), y: parseFloat((binReserveY * sortedNewData[i].y / (lbtSupply * 1e18)).toFixed(6)) })
+                                    newEstimatedX += parseFloat((binReserveX * sortedNewData[i].y / (lbtSupply * 1e18)).toFixed(6))
+                                    newEstimatedY += parseFloat((binReserveY * sortedNewData[i].y / (lbtSupply * 1e18)).toFixed(6))
+                                }
+                            }
+
+                            setData((prevData) => {
+                                return ({
+                                    ...prevData,
+                                    graphStatus: true,
+                                    xAmountDistribution: newXAmountDistribution,
+                                    yAmountDistribution: newYAmountDistribution,
+                                    xAmountEstimated: newEstimatedX.toFixed(4),
+                                    yAmountEstimated: newEstimatedY.toFixed(4),
+                                    data: sortedNewData
+                                })
+                            })
+                        })
                     })
                 })
             })
@@ -521,7 +673,7 @@ export default function Manage(props) {
     }, [accountInfo.usdt_available, accountInfo.wbnb_available])
 
     return (accountState.accountIf ?
-        <div onMouseMove={(event) => handleMouseMove(event)} onMouseUp={(event) => handleMouseUp(event)} className="manage_container">
+        <div className="manage_container">
             <div className="debt_table">
                 <div className="debt_pagination">
                     <p className="debt_pagination_text">Debt</p>
@@ -683,34 +835,57 @@ export default function Manage(props) {
                 <p className="distribution_text">even spread</p>
                 <img src="/src/assets/uniform.png" className="distribution_img" />
             </div>
-            <div className="graph_container">
+            <div className="graph_container" onMouseUp={(event) => handleMouseUp(event)} onMouseMove={(event) => handleMouseMove(event)}>
                 <VictoryChart
-                    theme={VictoryTheme.grayscale}
+                    theme={VictoryTheme.vibrant}
                     domainPadding={20}
                     containerComponent={
-                        <VictoryVoronoiContainer
-                            labels={({ datum }) => `y: ${datum.y}`}
-                            labelComponent={<VictoryTooltip />}
+                        <VictoryZoomVoronoiContainer
+                            zoomDimension="y"
+                            labels={({ datum }) => `x: ${datum.x}, y; ${datum.y}, total USDT:${data.xAmountEstimated}, total WBNB:${data.yAmountEstimated}`}
                         />
                     }
                 >
+                    <VictoryLegend x={250} y={50}
+                        title={`Status:${data.graphStatus ? `remove liquidity` : `add liquidity`}`}
+                        orientation="horizontal"
+                        gutter={20}
+                        style={{ title: { fontSize: 14 } }}
+                        data={[
+                            { name: "USDT", symbol: { fill: "grey", type: "square" } },
+                            { name: "WBNB", symbol: { fill: "black" } }
+                        ]}
+                    />
                     <VictoryAxis />
                     <VictoryAxis dependentAxis />
-                    <VictoryStack>
-                        <VictoryBar
-                            data={data.data} x="x" y="y"
-                            events={[
-                                {
-                                    target: "data",
-                                    eventHandlers: {
-                                        onMouseDown: (event, clickedDatum, clickedIndex) => {
-                                            handleMouseDown(event, clickedDatum, clickedIndex)
-                                        }
+                    <VictoryBar
+                        data={data.xAmountDistribution}
+                        style={{ data: { fill: "grey" } }} x="x" y="y"
+                        events={[
+                            {
+                                target: "data",
+                                eventHandlers: {
+                                    onMouseDown: (event, clickedDatum, clickedIndex) => {
+                                        /*handleMouseDown(event, clickedIndex)*/
                                     }
                                 }
-                            ]}
-                        />
-                    </VictoryStack>
+                            }
+                        ]}
+                    />
+                    <VictoryBar
+                        data={data.yAmountDistribution}
+                        style={{ data: { fill: "black" } }} x="x" y="y"
+                        events={[
+                            {
+                                target: "data",
+                                eventHandlers: {
+                                    onMouseDown: (event, clickedDatum, clickedIndex) => {
+                                        /*handleMouseDown(event, clickedIndex)*/
+                                    }
+                                }
+                            }
+                        ]}
+                    />
                 </VictoryChart>
                 <div className="liquidity_button_group">
                     <button className="liquidity_button" id="btn_add_liquidity" onClick={(event) => handleClickAmount(event)}>Add Liquidity</button>
