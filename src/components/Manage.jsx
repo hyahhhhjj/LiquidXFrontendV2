@@ -4,6 +4,9 @@ import ManagerAccount from '../contract_abi/ManagerAccount.json'
 import ILBLegacyPair from '../contract_abi/ILBLegacyPair.json'
 import ERC20 from '../contract_abi/ERC20.json'
 import { VictoryLegend, createContainer, VictoryZoomContainer, VictoryBar, VictoryChart, VictoryAxis, VictoryTheme, VictoryStack, VictoryVoronoiContainer, VictoryTooltip } from 'victory';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Slider from '@mui/material/Slider';
 import { calBorrowable, toEtherFixedFloat, getPlaceHolder, toEtherFixedString, fromEtherToWei } from '../utils/utils'
 
 export default function Manage(props) {
@@ -25,6 +28,20 @@ export default function Manage(props) {
 
     const VictoryZoomVoronoiContainer = createContainer("zoom", "voronoi")
 
+    const marks = [
+        {
+            value: 10,
+            label: '0 %',
+        },
+        {
+            value: 50,
+            label: '2.2 %',
+        },
+        {
+            value: 100,
+            label: '4.5 %'
+        },
+    ];
     
     const [data, setData] = React.useState({
         params: {
@@ -50,6 +67,7 @@ export default function Manage(props) {
         yAmountDistribution: [],
         xAmountEstimated: 0,
         yAmountEstimated: 0,
+        slideValue: 50,
         graphStatus: false,
         isDragging: false,
         startY: null,
@@ -114,7 +132,7 @@ export default function Manage(props) {
                     Lmin = LmaxX
                 }
 
-                const lPiece = Math.floor(Lmin / 9) /* this can be set mannually */
+                const lPiece = Math.floor(Lmin / Math.floor(data.slideValue / 5)) /* this can be set mannually */
 
                 let xAccumulateWei = 0
                 let yAccumulateWei = 0
@@ -470,6 +488,14 @@ export default function Manage(props) {
                     wbnbInputAddLiquidity: event.target.value
                 })
             })
+        } else if (event.target.name === "price_range_slide") {
+            console.log(event.target.value)
+            setData(prevData => {
+                return ({
+                    ...prevData,
+                    slideValue: event.target.value
+                })
+            })
         }
     }
 
@@ -587,6 +613,10 @@ export default function Manage(props) {
         }
     }
 
+    function valuetext(value) {
+        return `${Math.floor(value / 5)} %`
+    }
+
     React.useEffect(() => {
         syncManageInfo()
     }, [accountState.accountIf])
@@ -597,7 +627,7 @@ export default function Manage(props) {
 
     React.useEffect(() => {
         syncLiquidityShape()
-    }, [accountInfo.usdtInputAddLiquiidty, accountInfo.wbnbInputAddLiquidity])
+    }, [accountInfo.usdtInputAddLiquiidty, accountInfo.wbnbInputAddLiquidity, data.slideValue])
 
     React.useEffect(() => {
         async function syncLiquidityUserMinted() {
@@ -888,6 +918,27 @@ export default function Manage(props) {
                     />
                 </VictoryChart>
                 <div className="liquidity_button_group">
+                    <div className="slide_group">
+                        <div className="slide_label_area">
+                            <p className="slide_label_text">
+                                Price range:
+                            </p>
+                        </div>
+                        <Slider
+                            name = "price_range_slide"
+                            color="primary"
+                            size="small"
+                            aria-label="Small"
+                            min={10}
+                            max={100}
+                            value={data.slideValue}
+                            onChange={(event) => handleValueChange(event)}
+                            getAriaValueText={valuetext}
+                            step={10}
+                            valueLabelDisplay="auto"
+                            marks={marks}
+                        />
+                    </div>
                     <button className="liquidity_button" id="btn_add_liquidity" onClick={(event) => handleClickAmount(event)}>Add Liquidity</button>
                     <button className="liquidity_button" id="btn_remove_liquidity" onClick={(event) => handleClickAmount(event)}>Remove Liquidity</button>
                 </div>
