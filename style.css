@@ -1485,12 +1485,34 @@
 
 .liquidity_button_group {
     width: 275px;
-    height: 125px;
+    height: 200px;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 2px 2px 8px 2px;
-    gap: 4px;
+    gap: 8px;
+}
+
+.slide_group {
+    width: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.slide_label_area {
+    width: 160px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    
+}
+
+.slide_label_text {
+    font-family: 'Public Sans';
+    font-style: normal;
+    font-weight: 600;
+    font-size: 14px;
 }
 
 .liquidity_button {
