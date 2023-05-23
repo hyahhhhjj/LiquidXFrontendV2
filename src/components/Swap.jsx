@@ -42,9 +42,9 @@ export default function Swap(props) {
 
             if (state.currentToken == "USDT") {
                 usdtInterface.methods.balanceOf(props.wallet.fullAddress).call(function (error, result) {
-                    const balanceUp = toEtherFixedFloat(result, 2)
+                    const balanceUp = toEtherFixedFloat(result, 4)
                     wbnbInterface.methods.balanceOf(props.wallet.fullAddress).call(function (error, result) {
-                        const balanceDown = toEtherFixedFloat(result, 2)
+                        const balanceDown = toEtherFixedFloat(result, 4)
                         pairInterface.methods.getReservesAndId().call(function (error, result) {
                             const activeId = result.activeId
                             const realIDInt = parseInt(activeId) - 2 ** 23
@@ -62,9 +62,9 @@ export default function Swap(props) {
                 })
             } else {
                 usdtInterface.methods.balanceOf(props.wallet.fullAddress).call(function (error, result) {
-                    const balanceDown = toEtherFixedFloat(result, 2)
+                    const balanceDown = toEtherFixedFloat(result, 4)
                     wbnbInterface.methods.balanceOf(props.wallet.fullAddress).call(function (error, result) {
-                        const balanceUp = toEtherFixedFloat(result, 2)
+                        const balanceUp = toEtherFixedFloat(result, 4)
                         pairInterface.methods.getReservesAndId().call(function (error, result) {
                             const activeId = result.activeId
                             const realIDInt = parseInt(activeId) - 2 ** 23
