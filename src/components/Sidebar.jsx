@@ -26,6 +26,12 @@ export default function Sidebar(props) {
                                 <p className="md_left_text" id="s_1001" onClick={(event) => props.module_handler(event)}>Manage</p>
                             </div>
                         </div>
+                        <div className="nav_item_light" >
+                            <div className="nav_item">
+                                <img className="md_left_icon" src="/src/assets/swap_icon.png" />
+                                <p className="md_left_text" id="s_1002" onClick={(event) => props.module_handler(event)}>Swap</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div className="bottom_nav"></div>

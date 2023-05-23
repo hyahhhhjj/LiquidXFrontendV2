@@ -34,6 +34,7 @@ export default function App() {
         var target = event.target
         if (target.id === "s_1000") setModule(0)
         else if (target.id === "s_1001") setModule(1)
+        else if (target.id === "s_1002") setModule(2)
     }
 
     async function connectWallet() {
